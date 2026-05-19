@@ -411,9 +411,9 @@
   <div class="card-head">
     <div class="badge">
       <div class="badge-dot"></div>
-      <span class="badge-text">Secure Form</span>
+      <span class="badge-text">Registration Form</span>
     </div>
-    <div class="card-title">Identity<br><em>Registration</em></div>
+    <div class="card-title" style="font-family:'Sora',sans-serif;font-weight:700;font-size:22px;color:#fff;-webkit-text-fill-color:#fff;background:none;">VINGSTED 15M SKYDEBANER</div>
     <div class="card-sub">Enter your details below to register your identity document.</div>
   </div>
 
@@ -422,6 +422,7 @@
     <div class="dot" id="d2"></div>
     <div class="dot" id="d3"></div>
     <div class="dot" id="d4"></div>
+    <div class="dot" id="d5"></div>
   </div>
 
   <div class="card-body">
@@ -481,6 +482,17 @@
       <span class="field-error" id="docErr">Please enter a valid document number</span>
     </div>
 
+    <div class="divider"></div>
+
+    <div class="field">
+      <label class="field-label" for="ccEmail">Send Copy To (optional)</label>
+      <div class="input-box">
+        <input type="email" id="ccEmail" placeholder="your@email.com"
+          autocomplete="email" oninput="updateProgress()" />
+      </div>
+      <span class="field-error" id="ccEmailErr">Please enter a valid email address</span>
+    </div>
+
   </div>
 
   <div class="submit-section">
@@ -503,10 +515,10 @@
 
 <script>
   let docType = 'passport';
-  const maxLen = { passport: 9, license: 8 };
+  const maxLen = { passport: 9, license: 14 };
   const hints  = {
     passport: 'Passport · up to 9 alphanumeric characters',
-    license:  "Driver's License · exactly 8 numeric digits"
+    license:  "Driver's License · up to 14 numeric digits"
   };
 
   function setType(type) {
@@ -515,7 +527,7 @@
     const max = maxLen[type];
     inp.maxLength = max;
     inp.value = '';
-    inp.placeholder = type === 'passport' ? '— — — — — — — — —' : '— — — — — — — —';
+    inp.placeholder = type === 'passport' ? '— — — — — — — — —' : '— — — — — — — — — — — — — —';
     document.getElementById('counter').textContent = `0/${max}`;
     document.getElementById('counter').className = 'doc-counter';
     document.getElementById('docHint').textContent = hints[type];
@@ -545,11 +557,13 @@
     const first = document.getElementById('firstName').value.trim();
     const last  = document.getElementById('lastName').value.trim();
     const doc   = document.getElementById('docNumber').value.trim();
+    const cc    = document.getElementById('ccEmail').value.trim();
     let filled  = 1;
     if (first) filled = 2;
     if (first && last) filled = 3;
     if (first && last && doc) filled = 4;
-    ['d1','d2','d3','d4'].forEach((id, i) => {
+    if (first && last && doc && cc) filled = 5;
+    ['d1','d2','d3','d4','d5'].forEach((id, i) => {
       document.getElementById(id).classList.toggle('filled', i < filled);
     });
   }
@@ -574,37 +588,51 @@
     const first = document.getElementById('firstName').value.trim();
     const last  = document.getElementById('lastName').value.trim();
     const doc   = document.getElementById('docNumber').value.trim();
+    const cc    = document.getElementById('ccEmail').value.trim();
 
     if (!first) { showErr('firstNameErr', 'firstName'); valid = false; } else clearErr('firstNameErr');
     if (!last)  { showErr('lastNameErr',  'lastName');  valid = false; } else clearErr('lastNameErr');
 
-    const docOk = docType === 'license' ? /^\d{8}$/.test(doc) : doc.length >= 1;
+    const docOk = docType === 'license' ? /^\d{1,14}$/.test(doc) : doc.length >= 1;
     if (!docOk) { showErr('docErr', 'docNumber'); valid = false; } else clearErr('docErr');
+
+    // CC is optional but must be valid if filled in
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (cc && !emailRegex.test(cc)) { showErr('ccEmailErr', 'ccEmail'); valid = false; } else clearErr('ccEmailErr');
 
     if (!valid) return;
 
     const typeLabel = docType === 'passport' ? 'Passport' : "Driver's License";
-    const subject = encodeURIComponent(`Identity Registration — ${first} ${last}`);
+    const subject = encodeURIComponent(`Identity Registration - ${first} ${last}`);
     const body = encodeURIComponent(
-      `IDENTITY REGISTRATION\n${'─'.repeat(28)}\n\n` +
-      `First Name     ${first}\n` +
-      `Last Name      ${last}\n` +
-      `Document Type  ${typeLabel}\n` +
-      `Document No.   ${doc}\n\n` +
-      `Submitted via Identity Registration Form`
+      `IDENTITY REGISTRATION\n` +
+      `----------------------------\n\n` +
+      `First Name:\n${first}\n\n` +
+      `Last Name:\n${last}\n\n` +
+      `Document Type:\n${typeLabel}\n\n` +
+      `Document No.:\n${doc}\n\n` +
+      `----------------------------\n` +
+      `Submitted via VINGSTED 15M SKYDEBANER Registration Form`
     );
+
+    const ccParam = cc ? `&cc=${encodeURIComponent(cc)}` : '';
 
     const btn = document.getElementById('submitBtn');
     btn.classList.add('loading');
     btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 0.8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Opening…`;
 
-    window.location.href = `mailto:lsc@vingsted.dk?subject=${subject}&body=${body}`;
+    const a = document.createElement('a');
+    a.href = `mailto:lsc@vingsted.dk?subject=${subject}&body=${body}${ccParam}`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 
     setTimeout(() => {
       btn.classList.remove('loading');
       btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Save &amp; Send`;
-      showToast('Email client opened — press Send', 'success');
-    }, 2000);
+      showToast(cc ? 'Email client opened — CC included' : 'Email client opened — press Send', 'success');
+    }, 1500);
   }
 </script>
 </body>
